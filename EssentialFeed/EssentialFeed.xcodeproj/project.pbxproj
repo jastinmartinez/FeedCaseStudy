@@ -95,7 +95,8 @@
 		04D4FA0D2AB6261200AC679C = {
 			isa = PBXGroup;
 			children = (
-				04DFE9BF2AC7620E00E38D54 /* TestPlan */,
+				042F63662AC6446E0032007A /* EssentialFeed.xctestplan */,
+				04DFE9BE2AC761CB00E38D54 /* CI.xctestplan */,
 				04D4FA192AB6261300AC679C /* EssentialFeed */,
 				04D4FA232AB6261300AC679C /* EssentialFeedTests */,
 				04D4FA182AB6261300AC679C /* Products */,
@@ -136,15 +137,6 @@
 				0482A0D92AC502A40036E4D3 /* URLSessionHTTPClientTests.swift */,
 			);
 			path = "Feed API";
-			sourceTree = "<group>";
-		};
-		04DFE9BF2AC7620E00E38D54 /* TestPlan */ = {
-			isa = PBXGroup;
-			children = (
-				042F63662AC6446E0032007A /* EssentialFeed.xctestplan */,
-				04DFE9BE2AC761CB00E38D54 /* CI.xctestplan */,
-			);
-			path = TestPlan;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

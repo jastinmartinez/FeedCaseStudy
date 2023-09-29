@@ -6,13 +6,6 @@
       "options" : {
 
       }
-    },
-    {
-      "id" : "4F88BA7D-E9ED-42F0-8302-0D4ADB4BB864",
-      "name" : "CIConfiguration",
-      "options" : {
-        "threadSanitizerEnabled" : true
-      }
     }
   ],
   "defaultOptions" : {

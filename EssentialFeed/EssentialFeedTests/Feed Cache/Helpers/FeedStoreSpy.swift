@@ -12,8 +12,12 @@ class FeedStoreSpy: FeedStore {
    
     typealias DeletionCompletion = (Error?) -> Void
     typealias InsertionCompletion = (Error?) -> Void
+    typealias RetrievalCompletion = (Error?) -> Void
+    
     private(set) var deletions = [DeletionCompletion]()
     private(set) var insertions = [InsertionCompletion]()
+    private(set) var retrievals = [RetrievalCompletion]()
+    
     private(set) var receivedMessages = [ReceivedMessage]()
     
     enum ReceivedMessage: Equatable {
@@ -48,7 +52,12 @@ class FeedStoreSpy: FeedStore {
         insertions.append(completion)
     }
     
-    func retrieve() {
+    func retrieve(completion: @escaping DeletionCompletion) {
+        retrievals.append(completion)
         receivedMessages.append(.retrieve)
+    }
+    
+    func completeRetrieval(with error: Error, at index: Int = 0) {
+        retrievals[index](error)
     }
 }

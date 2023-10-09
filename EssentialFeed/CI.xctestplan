@@ -9,6 +9,7 @@
     }
   ],
   "defaultOptions" : {
+    "testExecutionOrdering" : "random",
     "threadSanitizerEnabled" : true
   },
   "testTargets" : [

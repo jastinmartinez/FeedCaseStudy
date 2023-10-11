@@ -49,7 +49,11 @@ public final class LocalFeedLoader {
                 self.store.deleteCachedFeed(completion: {_ in})
                 completion(.failure(failure))
                 
-            case .found, .empty:
+            case .found:
+                self.store.deleteCachedFeed(completion: {_ in})
+                completion(.success([]))
+                
+            case .empty:
                 completion(.success([]))
                 
             }

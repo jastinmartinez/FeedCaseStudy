@@ -130,6 +130,19 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         XCTAssertEqual(store.receivedMessages, [.retrieve, .deleteCachedFeed])
     }
     
+    func test_load_doesNotDeliverResultAfterSUTInstanceHasBeenDeallocated() {
+        let store = FeedStoreSpy()
+        var localFeedLoader: LocalFeedLoader? = LocalFeedLoader(store: store, currentDate: Date.init)
+        
+        var loadResults = [LocalFeedLoader.LoadResult]()
+        localFeedLoader?.load(completion: { loadResults.append($0) } )
+        
+        localFeedLoader = nil
+        store.completeWithEmptyCache()
+        
+        XCTAssertTrue(loadResults.isEmpty)
+    }
+    
     //   MARK: Helpers
     private func makeSUT(currentDate: @escaping () -> Date = Date.init,
                          file: StaticString = #file,
@@ -142,6 +155,7 @@ final class LoadFeedFromCacheUseCaseTests: XCTestCase {
         trackForMemoryLeaks(instance: localFeedLoader, file: file, line: line)
         return (localFeedLoader, store)
     }
+    
     
     private func expect(_ sut: LocalFeedLoader,
                         toCompleteWith expectedResult: LocalFeedLoader.LoadResult,

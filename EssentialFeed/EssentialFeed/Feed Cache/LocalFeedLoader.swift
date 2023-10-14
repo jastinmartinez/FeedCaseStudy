@@ -51,12 +51,8 @@ public final class LocalFeedLoader {
             case let .failure(  failure):
                 completion(.failure(failure))
                 
-            case .found:
+            case .found, .empty:
                 completion(.success([]))
-                
-            case .empty:
-                completion(.success([]))
-                
             }
         }
     }

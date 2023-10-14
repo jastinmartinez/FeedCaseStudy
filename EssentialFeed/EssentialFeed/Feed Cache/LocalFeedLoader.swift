@@ -7,15 +7,15 @@
 
 import Foundation
 
-public final class FeedCachePolicy {
+private enum FeedCachePolicy {
     
-    private let calendar = Calendar(identifier: .gregorian)
+    private static let calendar = Calendar(identifier: .gregorian)
     
-    private var maxCacheAgeInDays: Int {
+    private static var maxCacheAgeInDays: Int {
         return 7
     }
     
-    func validate(_ timestamp: Date, against date: Date) -> Bool {
+    static func validate(_ timestamp: Date, against date: Date) -> Bool {
         guard let maxCacheAge = calendar.date(byAdding: .day,
                                               value: maxCacheAgeInDays,
                                               to: timestamp) else {
@@ -29,9 +29,7 @@ public final class LocalFeedLoader {
     
     private let store: FeedStore
     private let currentDate: () -> Date
-    private let cachePolicy: FeedCachePolicy = FeedCachePolicy()
-    
-    
+ 
     public init(store: FeedStore, currentDate: @escaping () -> Date) {
         self.store = store
         self.currentDate = currentDate
@@ -73,7 +71,7 @@ extension LocalFeedLoader: FeedLoader {
                 return
             }
             switch result {
-            case let .found(feed: feed, timestamp: timestamp) where self.cachePolicy.validate(timestamp,
+            case let .found(feed: feed, timestamp: timestamp) where FeedCachePolicy.validate(timestamp,
                                                                                               against: currentDate()) :
                 completion(.success(feed.toModel()))
                 
@@ -94,7 +92,7 @@ extension LocalFeedLoader {
             guard let self = self else { return }
             
             switch result {
-            case let .found(_, timestamp) where !self.cachePolicy.validate(timestamp,
+            case let .found(_, timestamp) where !FeedCachePolicy.validate(timestamp,
                                                                            against: currentDate()):
                 self.store.deleteCachedFeed(completion: {_ in })
             case .failure:

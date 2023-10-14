@@ -7,26 +7,19 @@
 
 import Foundation
 
-
-public final class LocalFeedLoader {
-    
-    private let store: FeedStore
+public final class FeedCachePolicy {
     private let currentDate: () -> Date
     private let calendar = Calendar(identifier: .gregorian)
     
-    public typealias SaveResult = Error?
-    public typealias LoadResult = LoadFeedResult
+    init(currentDate: @escaping () -> Date) {
+        self.currentDate = currentDate
+    }
     
     private var maxCacheAgeInDays: Int {
         return 7
     }
     
-    public init(store: FeedStore, currentDate: @escaping () -> Date) {
-        self.store = store
-        self.currentDate = currentDate
-    }
-    
-    private func validate(_ timestamp: Date) -> Bool {
+    func validate(_ timestamp: Date) -> Bool {
         guard let maxCacheAge = calendar.date(byAdding: .day,
                                               value: maxCacheAgeInDays,
                                               to: timestamp) else {
@@ -36,7 +29,23 @@ public final class LocalFeedLoader {
     }
 }
 
+public final class LocalFeedLoader {
+    
+    private let store: FeedStore
+    private let currentDate: () -> Date
+    private let cachePolicy: FeedCachePolicy
+    
+    
+    public init(store: FeedStore, currentDate: @escaping () -> Date) {
+        self.store = store
+        self.currentDate = currentDate
+        self.cachePolicy = FeedCachePolicy(currentDate: currentDate)
+    }
+}
+
 extension LocalFeedLoader {
+    public typealias SaveResult = Error?
+    
     public func save(_ feed: [FeedImage], completion: @escaping (SaveResult) -> Void) {
         store.deleteCachedFeed { [weak self] error in
             guard let self = self else {
@@ -61,13 +70,15 @@ extension LocalFeedLoader {
 }
 
 extension LocalFeedLoader: FeedLoader {
+    public typealias LoadResult = LoadFeedResult
+    
     public func load(completion: @escaping (LoadResult) -> Void) {
         store.retrieve { [weak self] result in
             guard let self = self else {
                 return
             }
             switch result {
-            case let .found(feed: feed, timestamp: timestamp) where self.validate(timestamp) :
+            case let .found(feed: feed, timestamp: timestamp) where self.cachePolicy.validate(timestamp) :
                 completion(.success(feed.toModel()))
                 
             case let .failure(  failure):
@@ -87,7 +98,7 @@ extension LocalFeedLoader {
             guard let self = self else { return }
             
             switch result {
-            case let .found(_, timestamp) where !self.validate(timestamp):
+            case let .found(_, timestamp) where !self.cachePolicy.validate(timestamp):
                 self.store.deleteCachedFeed(completion: {_ in })
             case .failure:
                 self.store.deleteCachedFeed(completion: {_ in})
@@ -114,4 +125,3 @@ private extension Array where Element == LocalFeedImage {
                                url: $0.url) })
     }
 }
-

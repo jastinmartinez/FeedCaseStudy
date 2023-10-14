@@ -12,21 +12,26 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     
     func test_init_doesNotRequestDataFromURL() {
         let (_, client) = self.makeSUT()
+        
         XCTAssertTrue(client.requestedURLs.isEmpty)
     }
     
     func test_load_requestsDataFromURL() {
-        let url = URL(string: "https://a-url.com")!
+        let url = anyURL()
         let (sut, client) = makeSUT(url: url)
+        
         sut.load {_ in }
+        
         XCTAssertEqual([url], client.requestedURLs)
     }
     
     func test_loadTwice_requestsDataFromURLTwice() {
-        let url = URL(string: "https://a-url.com")!
+        let url = anyURL()
         let (sut, client) = makeSUT(url: url)
+        
         sut.load {_ in }
         sut.load {_ in }
+        
         XCTAssertEqual([url, url], client.requestedURLs)
         XCTAssertEqual(2, client.requestedURLs.count)
     }
@@ -42,6 +47,7 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     func test_load_deliversErrorOnNonHTTPResponse() {
         let (sut, client) = self.makeSUT()
         let invalidCodeSamples = [199, 201, 300, 400, 500]
+        
         invalidCodeSamples.enumerated().forEach { index, value in
             expect(sut, toCompleteWith: failure(.invalidData)) {
                 let json = self.makeItemsJSON([])
@@ -54,6 +60,7 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     
     func test_load_deliversErrorsOn200HTTPResponseWithInvalidJSON() {
         let (sut, client) = self.makeSUT()
+        
         expect(sut, toCompleteWith: failure(.invalidData)) {
             let invalidJSON = Data("invalidJSON".utf8)
             client.complete(withStatusCode: 200, data: invalidJSON)
@@ -62,9 +69,11 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     
     func test_load_deliversNoItemsOn200HTTPResponseWithEmptyJSONList() {
         let (sut, client) = self.makeSUT()
+        
         expect(sut, toCompleteWith: .success([])) {
-            let emtyListJSON = self.makeItemsJSON([])
-            client.complete(withStatusCode: 200, data: emtyListJSON)
+            
+            let emptyListJSON = self.makeItemsJSON([])
+            client.complete(withStatusCode: 200, data: emptyListJSON)
         }
     }
     
@@ -72,13 +81,14 @@ final class RemoteFeedUseCaseTests: XCTestCase {
         let (sut, client) = self.makeSUT()
         
         let item1 = makeItem(id: UUID(),
-                             imageURL: URL(string: "http://a-url.com")!)
+                             imageURL: anyURL())
         
         let item2 = makeItem(id: UUID(),
                              description: "a description",
                              location: "a location",
-                             imageURL: URL(string: "http://another-url.com")!)
+                             imageURL: anyURL())
         let items = [item1.item, item2.item]
+        
         expect(sut, toCompleteWith: .success(items)) {
             let itemsJSON = [item1.JSON, item2.JSON]
             let json = self.makeItemsJSON(itemsJSON)
@@ -87,7 +97,7 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     }
     
     func test_load_doesNotDeliverResultAfterSUTInstanceHasBeenDeallocated() {
-        let url = URL(string: "https://a-given-url.com")!
+        let url = anyURL()
         let client = HTTPClientSpy()
         var sut: RemoteFeedLoader? = RemoteFeedLoader(url: url, client: client)
         
@@ -101,7 +111,7 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     }
     
     //   MARK: - Helpers
-    private func makeSUT(url: URL = URL(string: "https://a-url.com")!,
+    private func makeSUT(url: URL = anyURL(),
                          file: StaticString = #file,
                          line: UInt = #line) -> (sut: RemoteFeedLoader, client: HTTPClientSpy) {
         let client = HTTPClientSpy()
@@ -117,7 +127,7 @@ final class RemoteFeedUseCaseTests: XCTestCase {
                         file: StaticString = #file,
                         line: UInt = #line) {
         
-        let expect = expectation(description: "wair for load to completion")
+        let expect = expectation(description: "wait for load to completion")
         
         sut.load { receivedResult in
             switch (receivedResult, expectedResult) {

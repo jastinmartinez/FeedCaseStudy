@@ -128,6 +128,20 @@ final class CodableFeedStoreTests: XCTestCase {
         expect(sut, toRetrieveTwice: .failure(anyNSError()))
     }
     
+    func test_insert_overridesPreviousInsertedCacheValues() {
+        let sut = makeSUT()
+        
+        let firstInsertionError = insert((uniqueImageFeed().locals, Date()), to: sut)
+        XCTAssertNil(firstInsertionError, "expect to insert cache successfully")
+        
+        let latestFeed = uniqueImageFeed().locals
+        let latesTimestamp = Date()
+        let latestInsertionError = insert((latestFeed, latesTimestamp), to: sut)
+        
+        XCTAssertNil(latestInsertionError, "expect to insert cache successfully")
+        expect(sut, toRetrieve: .found(feed: latestFeed, timestamp: latesTimestamp))
+    }
+    
     //    MARK: HELPERS
     
     private func makeSUT(storeURL: URL? = nil,
@@ -146,14 +160,19 @@ final class CodableFeedStoreTests: XCTestCase {
         expect(sut, toRetrieve: expectedResult)
     }
     
-    private func insert(_ expect: (feed: [LocalFeedImage], timestamp: Date),
-                        to sut: CodableFeedStore) {
+    @discardableResult private func insert(_ expect: (feed: [LocalFeedImage], timestamp: Date),
+                        to sut: CodableFeedStore) -> Error? {
         let exp = expectation(description: "wait cache retrieval")
+        var capturedError: Error? = nil
+        
         sut.insert(expect.feed, timestamp: expect.timestamp, completion: { insertionError in
-            XCTAssertNil(insertionError, "Expected feed to be inserted successfully")
+            capturedError = insertionError
             exp.fulfill()
         })
+        
         wait(for: [exp], timeout: 1.0)
+        
+        return capturedError
     }
     
     private func expect(_ sut: CodableFeedStore,
@@ -167,8 +186,14 @@ final class CodableFeedStoreTests: XCTestCase {
             case let (.empty, .empty): break
             case let (.failure, .failure): break
             case let (.found(expected), .found(retrieved)):
-                XCTAssertEqual(expected.feed, retrieved.feed)
-                XCTAssertEqual(expected.timestamp, retrieved.timestamp)
+                XCTAssertEqual(expected.feed, 
+                               retrieved.feed,
+                               file: file,
+                               line: line)
+                XCTAssertEqual(expected.timestamp,
+                               retrieved.timestamp,
+                               file: file,
+                               line: line)
 
             default:
                 XCTFail("Expected to retrieve \(expectedResult), got \(capturedResult) instead"

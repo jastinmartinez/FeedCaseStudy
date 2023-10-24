@@ -126,7 +126,34 @@ final class CodableFeedStoreTests: XCTestCase {
         XCTAssertNotNil(deletionError, "Expected cache deletion fail")
         expect(sut, toRetrieve: .empty)
     }
-    
+
+    func test_storeSideEffects_runSeriallY() {
+        let sut = makeSUT()
+
+        var completeOperationInOrder = [XCTestExpectation]()
+
+        let op1 = expectation(description: "Operation 1")
+        sut.insert(uniqueImageFeed().locals, timestamp: Date(), completion: {_ in
+            completeOperationInOrder.append(op1)
+            op1.fulfill()
+        })
+
+        let op2 = expectation(description: "Operation 2")
+        sut.deleteCachedFeed(completion: { _ in
+            completeOperationInOrder.append(op2)
+            op2.fulfill()
+        })
+
+        let op3 = expectation(description: "Operation 3")
+        sut.insert(uniqueImageFeed().locals, timestamp: Date(), completion: {_ in
+            completeOperationInOrder.append(op3)
+            op3.fulfill()
+        })
+
+        waitForExpectations(timeout: 5.0)
+        XCTAssertEqual(completeOperationInOrder, [op1, op2, op3], "Expected side-effects to run serially but operations finished in the wrong order")
+    }
+
     //    MARK: HELPERS
     
     private func makeSUT(storeURL: URL? = nil,
@@ -181,8 +208,8 @@ final class CodableFeedStoreTests: XCTestCase {
         
         sut.retrieve { capturedResult in
             switch (capturedResult, expectedResult) {
-            case let (.empty, .empty): break
-            case let (.failure, .failure): break
+            case (.empty, .empty): break
+            case (.failure, .failure): break
             case let (.found(expected), .found(retrieved)):
                 XCTAssertEqual(expected.feed,
                                retrieved.feed,
@@ -216,5 +243,4 @@ final class CodableFeedStoreTests: XCTestCase {
         let storeURL = testSpecificStoreURL()
         try? FileManager.default.removeItem(at: storeURL)
     }
-
 }

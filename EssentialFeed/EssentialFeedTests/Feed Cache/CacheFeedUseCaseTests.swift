@@ -50,6 +50,7 @@ class CacheFeedUseCaseTests: XCTestCase {
     func test_save_failsOnDeletionError() {
         let (localFeedLoader, store) = makeSUT()
         let deletionError = anyNSError()
+        
         expect(localFeedLoader, toCompleteWithError: deletionError) {
             store.completeDeletion(with: deletionError)
         }
@@ -58,6 +59,7 @@ class CacheFeedUseCaseTests: XCTestCase {
     func test_save_failsOnInsertionError() {
         let (localFeedLoader, store) = makeSUT()
         let insertionError = anyNSError()
+        
         expect(localFeedLoader, toCompleteWithError: insertionError) {
             store.completeDeletionSuccessfully()
             store.completeInsertion(with: insertionError)
@@ -66,6 +68,7 @@ class CacheFeedUseCaseTests: XCTestCase {
     
     func test_save_succeedsOnSuccessfulCacheInsertion() {
         let (localFeedLoader, store) = makeSUT()
+        
         expect(localFeedLoader, toCompleteWithError: nil) {
             store.completeDeletionSuccessfully()
             store.completeInsertionSuccessfully()

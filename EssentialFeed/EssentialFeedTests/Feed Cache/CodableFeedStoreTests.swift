@@ -59,10 +59,15 @@ final class CodableFeedStore {
     }
     
     func insert(_ feed: [LocalFeedImage], timestamp: Date, completion: @escaping FeedStore.InsertionCompletion) {
-        let cache = Cache(feed: feed.map(CodableFeedImage.init), timestamp: timestamp)
-        let encode = try! JSONEncoder().encode(cache)
-        try! encode.write(to: storeURL)
-        completion(nil)
+        do {
+            let cache = Cache(feed: feed.map(CodableFeedImage.init), timestamp: timestamp)
+            let encode = try JSONEncoder().encode(cache)
+            try encode.write(to: storeURL)
+            completion(nil)
+        } catch {
+            completion(error)
+        }
+        
     }
 }
 
@@ -142,6 +147,17 @@ final class CodableFeedStoreTests: XCTestCase {
         expect(sut, toRetrieve: .found(feed: latestFeed, timestamp: latestTimestamp))
     }
     
+    func test_insert_deliversErrorOnInsertionError() {
+        let invalidStore = URL(string: "invalid://store-url")
+        let sut = makeSUT(storeURL: invalidStore)
+        let feed = uniqueImageFeed().locals
+        let timestamp = Date()
+        
+        let insertionError = insert((feed, timestamp), to: sut)
+        
+        XCTAssertNotNil(insertionError, "Expect cache insertion to fail with an error")
+    }
+    
     
     // - MARK: Helpers
     
@@ -195,7 +211,7 @@ final class CodableFeedStoreTests: XCTestCase {
     private func expect(_ sut: CodableFeedStore,
                         toRetrieve expectedResult: RetrieveCachedFeedResult,
                         file: StaticString = #file,
-                   line: UInt = #line) {
+                        line: UInt = #line) {
         let exp = expectation(description: "wait for cache retrieval")
         
         sut.retrieve { retrieveResult in

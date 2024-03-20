@@ -8,32 +8,7 @@
 import Foundation
 import XCTest
 
-final class CoreDataFeedStoreTests: XCTestCase, FailableFeedStoreSpecs {
-    
-    func test_retrieve_deliversFailureOnRetrievalError() {
-        
-    }
-    
-    func test_retrieve_hasNoSideEffectsOnFailure() {
-        
-    }
-    
-    func test_insert_deliversErrorOnInsertionError() {
-        
-    }
-    
-    func test_insert_hasNoSideEffectsOnInsertionError() {
-        
-    }
-    
-    func test_delete_deliversErrorOnDeletionError() {
-        
-    }
-    
-    func test_delete_hasNoSideEffectsOnDeletionError() {
-        
-    }
-    
+final class CoreDataFeedStoreTests: XCTestCase, FeedStoreSpecs {
     func test_retrieve_deliversEmptyOnEmptyCache() {
         
     }

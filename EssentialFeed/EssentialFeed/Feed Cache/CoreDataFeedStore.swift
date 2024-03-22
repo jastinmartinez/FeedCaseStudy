@@ -28,6 +28,7 @@ public final class CoreDataFeedStore: FeedStore {
             do {
                 let managedCache = ManagedCache(context: context)
                 managedCache.feed = ManagedFeedImage.images(from: feed, in: context)
+                managedCache.timestamp = timestamp
                 try context.save()
                 completion(nil)
             } catch {

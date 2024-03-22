@@ -57,7 +57,7 @@ final class URLSessionHTTPClientTests: XCTestCase {
     }
     
     func test_getFromURL_FailsOnRequestError() {
-        let requestError = NSError(domain: "a given erro", code: 1)
+        let requestError = NSError(domain: "a given error", code: 1)
         let receivedError = resultOnError(data: nil, response: nil, error: requestError)
         XCTAssertEqual(requestError.localizedDescription, receivedError?.localizedDescription)
     }
@@ -74,7 +74,7 @@ final class URLSessionHTTPClientTests: XCTestCase {
         XCTAssertNotNil(resultOnError(data: anyData(), response: anyURLResponse(), error: nil))
     }
     
-    func test_getFromURL_succedsOnHTTPUrlResponseWithData() {
+    func test_getFromURL_succeedsOnHTTPUrlResponseWithData() {
         let anyResponse = anyHTTPURLResponse()
         let anyData = anyData()
         
@@ -85,7 +85,7 @@ final class URLSessionHTTPClientTests: XCTestCase {
         XCTAssertEqual(capturedValue?.httpResponse.statusCode, anyResponse.statusCode)
     }
     
-    func test_getFromURL_succedsWithEmptyDataOnHTTPUrlResponseWithData() {
+    func test_getFromURL_succeedsWithEmptyDataOnHTTPUrlResponseWithData() {
         let anyResponse = anyHTTPURLResponse()
         
         let capturedValue = resultValuesFor(data: nil, response: anyResponse, error: nil)
@@ -103,14 +103,6 @@ final class URLSessionHTTPClientTests: XCTestCase {
         let sut = URLSessionHTTPClient()
         trackForMemoryLeaks(instance: sut, file: file, line: line)
         return sut
-    }
-    
-    private func anyURL() -> URL {
-        return URL(string: "https://any-url.com")!
-    }
-    
-    private func anyNSError() -> NSError {
-        return NSError(domain: "any error", code: 1)
     }
     
     private func anyData() -> Data {

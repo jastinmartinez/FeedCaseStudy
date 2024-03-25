@@ -80,7 +80,7 @@ class CacheFeedUseCaseTests: XCTestCase {
         var sut: LocalFeedLoader? = LocalFeedLoader(store: store, currentDate: Date.init)
         
         var receivedResults = [Error?]()
-        sut?.save(uniqueImageFeed().models, completion: { receivedResults.append($0) })
+        sut?.save(uniqueImageFeed().models, completion: { if case let .failure(error) = $0 {  receivedResults.append(error) } } )
         
         sut = nil
         store.completeDeletion(with: anyNSError())
@@ -126,8 +126,10 @@ class CacheFeedUseCaseTests: XCTestCase {
         let items = [uniqueImage(), uniqueImage()]
         
         var capturedError: Error?
-        sut.save(items) { error in
-            capturedError = error
+        sut.save(items) { saveResult in
+            if case let .failure(error) = saveResult {
+                capturedError = error
+            }
             exp.fulfill()
         }
         

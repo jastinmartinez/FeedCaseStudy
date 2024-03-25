@@ -10,8 +10,8 @@ import EssentialFeed
 
 class FeedStoreSpy: FeedStore {
     
-    typealias DeletionCompletion = (Error?) -> Void
-    typealias InsertionCompletion = (Error?) -> Void
+    typealias DeletionCompletion = (FeedStore.DeletionResult) -> Void
+    typealias InsertionCompletion = (FeedStore.InsertionResult) -> Void
     typealias RetrievalCompletion = (FeedStore.RetrievalResult) -> Void
     
     private(set) var deletions = [DeletionCompletion]()
@@ -32,19 +32,19 @@ class FeedStoreSpy: FeedStore {
     }
     
     func completeDeletion(with error: Error, at index: Int = 0) {
-        deletions[index](error)
+        deletions[index](.failure(error))
     }
     
     func completeDeletionSuccessfully(at index: Int = 0) {
-        deletions[index](nil)
+        deletions[index](.success(()))
     }
     
     func completeInsertionSuccessfully(at index: Int = 0) {
-        insertions[index](nil)
+        insertions[index](.success(()))
     }
     
     func completeInsertion(with error: Error, at index: Int = 0) {
-        insertions[index](error)
+        insertions[index](.failure(error))
     }
     
     func insert(_ items: [LocalFeedImage], timestamp: Date, completion: @escaping InsertionCompletion) {

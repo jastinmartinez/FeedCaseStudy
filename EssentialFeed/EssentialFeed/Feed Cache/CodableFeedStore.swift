@@ -68,9 +68,9 @@ public final class CodableFeedStore: FeedStore {
                 let cache = Cache(feed: feed.map(CodableFeedImage.init), timestamp: timestamp)
                 let encode = try JSONEncoder().encode(cache)
                 try encode.write(to: storeURL)
-                completion(nil)
+                completion(.success(()))
             } catch {
-                completion(error)
+                completion(.failure(error))
             }
         }
     }
@@ -82,10 +82,10 @@ public final class CodableFeedStore: FeedStore {
                 if fileManager.fileExists(atPath: storeURL.path) {
                     try fileManager.removeItem(at: storeURL)
                 }
-                completion(nil)
+                completion(.success(()))
                 
             } catch {
-                completion(error)
+                completion(.failure(error))
             }
         }
     }

@@ -183,13 +183,13 @@ final class RemoteFeedUseCaseTests: XCTestCase {
     
     private class HTTPClientSpy: HTTPClient {
         
-        private (set) var messages =  [(url: URL, completion: (HTTPClientResult) -> Void)]()
+        private (set) var messages =  [(url: URL, completion: (HTTPClient.Result) -> Void)]()
         
         var requestedURLs: [URL] {
             return self.messages.map({ $0.url })
         }
         
-        func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void) {
+        func get(from url: URL, completion: @escaping (HTTPClient.Result) -> Void) {
             self.messages.append((url, completion))
         }
         
@@ -203,7 +203,7 @@ final class RemoteFeedUseCaseTests: XCTestCase {
                                            statusCode: code,
                                            httpVersion: nil,
                                            headerFields: nil)!
-            self.messages[index].completion(.success(data, response))
+            self.messages[index].completion(.success((data, response)))
         }
     }
 }

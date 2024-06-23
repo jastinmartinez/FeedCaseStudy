@@ -59,7 +59,7 @@ final class FeedViewControllerTests: XCTestCase {
         XCTAssertEqual(loader.loadCallCount, 3)
     }
     
-    //    MARK: HELPERS
+    // MARK: HELPERS
     
     private func makeSUT(file: StaticString = #filePath,
                          line: UInt = #line) -> (FeedViewController, LoaderSpy) {

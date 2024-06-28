@@ -13,7 +13,6 @@ import EssentialFeed
 final class FeedViewController: UITableViewController {
     
     private var loader: FeedLoader?
-    
     @objc private var onLoad: (() -> Void)?
     
     convenience init(loader: FeedLoader) {
@@ -23,19 +22,31 @@ final class FeedViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        onCreate()
+    }
+    
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        onLoad?()
+    }
+    
+    private func onCreate() {
+        setRefreshControl()
+        setOnLoad()
+    }
+    
+    private func setRefreshControl() {
         refreshControl = UIRefreshControl()
         refreshControl?.addTarget(self, action: #selector(getter: onLoad), for: .valueChanged)
+    }
+    
+    private func setOnLoad() {
         onLoad = { [weak self] in
             self?.refreshControl?.beginRefreshing()
             self?.loader?.load { [weak self] _ in
                 self?.refreshControl?.endRefreshing()
             }
         }
-        onLoad?()
-    }
-    
-    override func viewIsAppearing(_ animated: Bool) {
-        super.viewIsAppearing(animated)
         onLoad?()
     }
 }

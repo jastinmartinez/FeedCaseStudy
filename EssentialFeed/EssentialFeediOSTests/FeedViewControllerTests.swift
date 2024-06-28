@@ -14,6 +14,8 @@ final class FeedViewController: UITableViewController {
     
     private var loader: FeedLoader?
     
+    @objc private var onLoad: (() -> Void)?
+    
     convenience init(loader: FeedLoader) {
         self.init()
         self.loader = loader
@@ -22,17 +24,19 @@ final class FeedViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         refreshControl = UIRefreshControl()
-        refreshControl?.addTarget(self, action: #selector(load), for: .valueChanged)
-        load()
+        refreshControl?.addTarget(self, action: #selector(getter: onLoad), for: .valueChanged)
+        onLoad = { [weak self] in
+            self?.refreshControl?.beginRefreshing()
+            self?.loader?.load { [weak self] _ in
+                self?.refreshControl?.endRefreshing()
+            }
+        }
+        onLoad?()
     }
     
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        refreshControl?.beginRefreshing()
-    }
-    
-    @objc private func load() {
-        loader?.load { _ in }
+        onLoad?()
     }
 }
 
@@ -56,15 +60,15 @@ final class FeedViewControllerTests: XCTestCase {
         let (sut, loader) = makeSUT()
         
         sut.loadViewIfNeeded()
-        
-        sut.refreshControl?.simulatePullDownRefresh()
+        sut.replaceWithFakeRefreshControl()
+        sut.simulatePullDownRefresh()
         XCTAssertEqual(loader.loadCallCount, 2)
         
-        sut.refreshControl?.simulatePullDownRefresh()
+        sut.simulatePullDownRefresh()
         XCTAssertEqual(loader.loadCallCount, 3)
     }
     
-   
+    
     func test_viewDidLoad_showsLoadingIndicator() {
         let (sut, _) = makeSUT()
         
@@ -73,6 +77,39 @@ final class FeedViewControllerTests: XCTestCase {
         sut.simulateAppereance()
         
         XCTAssertEqual(sut.refreshControl?.isRefreshing, true)
+    }
+    
+    func test_viewDidLoad_hidesLoadingIndicatorOnLoaderCompletion() {
+        let (sut, loader) = makeSUT()
+        
+        sut.loadViewIfNeeded()
+        sut.replaceWithFakeRefreshControl()
+        sut.simulateAppereance()
+        
+        loader.completeFeedLoader()
+        
+        XCTAssertEqual(sut.refreshControl?.isRefreshing, false)
+    }
+    
+    func test_pullRefresh_showsLoadingIndicator() {
+        let (sut, _) = makeSUT()
+        
+        sut.loadViewIfNeeded()
+        sut.replaceWithFakeRefreshControl()
+        sut.simulatePullDownRefresh()
+        
+        XCTAssertEqual(sut.refreshControl?.isRefreshing, true)
+    }
+    
+    func test_pullRefresh_hidesLoadingIndicatorOnLoadCompletion() {
+        let (sut, loader) = makeSUT()
+        
+        sut.loadViewIfNeeded()
+        sut.replaceWithFakeRefreshControl()
+        sut.simulatePullDownRefresh()
+        loader.completeFeedLoader()
+        
+        XCTAssertEqual(sut.refreshControl?.isRefreshing, false)
     }
     
     
@@ -89,21 +126,19 @@ final class FeedViewControllerTests: XCTestCase {
     
     class LoaderSpy: FeedLoader {
         
-        private(set) var loadCallCount = 0
+        private var messages = [(FeedLoader.Result) -> Void]()
+        
+        var loadCallCount: Int {
+            return messages.count
+        }
         
         func load(completion: @escaping (FeedLoader.Result) -> Void) {
-            loadCallCount += 1
+            messages.append(completion)
         }
-    }
-}
-
-private extension UIRefreshControl {
-    func simulatePullDownRefresh() {
-        allTargets.forEach({ target in
-            actions(forTarget: target, forControlEvent: .valueChanged)?.forEach({ action in
-                (target as NSObject).perform(Selector(action))
-            })
-        })
+        
+        func completeFeedLoader() {
+            messages[0](.success([]))
+        }
     }
 }
 
@@ -119,9 +154,13 @@ private extension FeedViewController {
     }
     
     func simulateAppereance() {
-       beginAppearanceTransition(true, animated: false)
-       endAppearanceTransition()
-   }
+        beginAppearanceTransition(true, animated: false)
+        endAppearanceTransition()
+    }
+    
+    func simulatePullDownRefresh() {
+        onLoad?()
+    }
 }
 
 private class FakeRefreshControl: UIRefreshControl {

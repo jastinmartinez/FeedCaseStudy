@@ -8,48 +8,7 @@
 import XCTest
 import UIKit
 import EssentialFeed
-
-
-final class FeedViewController: UITableViewController {
-    
-    private var loader: FeedLoader?
-    @objc private var onLoad: (() -> Void)?
-    
-    convenience init(loader: FeedLoader) {
-        self.init()
-        self.loader = loader
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        onCreate()
-    }
-    
-    override func viewIsAppearing(_ animated: Bool) {
-        super.viewIsAppearing(animated)
-        onLoad?()
-    }
-    
-    private func onCreate() {
-        setRefreshControl()
-        setOnLoad()
-    }
-    
-    private func setRefreshControl() {
-        refreshControl = UIRefreshControl()
-        refreshControl?.addTarget(self, action: #selector(getter: onLoad), for: .valueChanged)
-    }
-    
-    private func setOnLoad() {
-        onLoad = { [weak self] in
-            self?.refreshControl?.beginRefreshing()
-            self?.loader?.load { [weak self] _ in
-                self?.refreshControl?.endRefreshing()
-            }
-        }
-        onLoad?()
-    }
-}
+import EssentialFeediOS
 
 final class FeedViewControllerTests: XCTestCase {
     
@@ -68,47 +27,47 @@ final class FeedViewControllerTests: XCTestCase {
         XCTAssertEqual(loader.loadCallCount, 3)
     }
     
-    func test_viewDidLoad_showsLoadingIndicator() {
-        let (sut, _) = makeSUT()
-        
-        sut.loadViewIfNeeded()
-        sut.replaceWithFakeRefreshControl()
-        sut.simulateAppereance()
-        
-        XCTAssertEqual(sut.isShowingLoadingIndicator, true)
-    }
-    
-    func test_viewDidLoad_hidesLoadingIndicatorOnLoaderCompletion() {
+    func test_loadingFeedIndicator_isVisibleWhileLoadingFeed() {
         let (sut, loader) = makeSUT()
         
         sut.loadViewIfNeeded()
         sut.replaceWithFakeRefreshControl()
         sut.simulateAppereance()
+        XCTAssertEqual(sut.isShowingLoadingIndicator, true)
         
-        loader.completeFeedLoader()
+        loader.completeFeedLoader(at: 0)
+        XCTAssertEqual(sut.isShowingLoadingIndicator, false)
         
+        sut.simulatePullDownRefresh()
+        XCTAssertEqual(sut.isShowingLoadingIndicator, true)
+        
+        loader.completeFeedLoader(at: 1)
         XCTAssertEqual(sut.isShowingLoadingIndicator, false)
     }
     
-    func test_userInitiatedFeedReloads_showsLoadingIndicator() {
-        let (sut, _) = makeSUT()
+    func test_loadFeedCompletion_redendersSuccesfullyLoadedFeed() throws {
+        let image0 = makeImage(description: "a description", location: "a location")
+        let image1 = makeImage(description: nil, location: "a location")
+        let image2 = makeImage(description: "a description", location: nil)
+        let image3 = makeImage(description: nil, location: nil)
         
-        sut.loadViewIfNeeded()
-        sut.replaceWithFakeRefreshControl()
-        sut.simulatePullDownRefresh()
-        
-        XCTAssertEqual(sut.isShowingLoadingIndicator, true)
-    }
-    
-    func test_userInitiatedFeedReloads_hidesLoadingIndicatorOnLoadCompletion() {
         let (sut, loader) = makeSUT()
         
         sut.loadViewIfNeeded()
-        sut.replaceWithFakeRefreshControl()
-        sut.simulatePullDownRefresh()
-        loader.completeFeedLoader()
+        XCTAssertEqual(sut.numberOfRenderedFeedImageView(), 0)
         
-        XCTAssertEqual(sut.isShowingLoadingIndicator, false)
+        loader.completeFeedLoader(with: [image0])
+        XCTAssertEqual(sut.numberOfRenderedFeedImageView(), 1)
+        
+        sut.simulatePullDownRefresh()
+        
+        let feedImages: [FeedImage] = [image0, image1, image2, image3]
+        loader.completeFeedLoader(with: feedImages)
+        XCTAssertEqual(sut.numberOfRenderedFeedImageView(), 4)
+        continueAfterFailure = false
+        try feedImages.enumerated().forEach { (index, feed) in
+            try assert(sut, hasViewConfigureFor: feed, at: index)
+        }
     }
     
     
@@ -123,6 +82,26 @@ final class FeedViewControllerTests: XCTestCase {
         return (sut, loader)
     }
     
+    private func assert(_ sut: FeedViewController,
+                        hasViewConfigureFor image: FeedImage,
+                        at index: Int,
+                        file: StaticString = #filePath,
+                        line: UInt = #line) throws {
+        let view = try XCTUnwrap( sut.feedViewImage(at: index) as? FeedImageCell)
+        XCTAssertEqual(view.isShowingLocation, image.location != nil, file: file, line: line)
+        XCTAssertEqual(view.locationText, image.location, file: file, line: line)
+        XCTAssertEqual(view.descriptionText, image.description, file: file, line: line)
+    }
+    
+    private func makeImage(description: String? = nil
+                           , location: String? = nil
+                           ,ulr: URL = URL(string: "http://any-url.com")!) -> FeedImage {
+        return FeedImage(id: UUID(),
+                         description: description,
+                         location: location,
+                         url: ulr)
+    }
+    
     class LoaderSpy: FeedLoader {
         
         private var messages = [(FeedLoader.Result) -> Void]()
@@ -135,8 +114,8 @@ final class FeedViewControllerTests: XCTestCase {
             messages.append(completion)
         }
         
-        func completeFeedLoader() {
-            messages[0](.success([]))
+        func completeFeedLoader(with feed: [FeedImage] = [],at index: Int = 0) {
+            messages[index](.success(feed))
         }
     }
 }
@@ -162,8 +141,37 @@ private extension FeedViewController {
         endAppearanceTransition()
     }
     
+    func numberOfRenderedFeedImageView() -> Int {
+        return tableView.numberOfRows(inSection: feedImageSection)
+    }
+    
+    private var feedImageSection: Int {
+        return 0
+    }
+    
+    func feedViewImage(at row: Int = 0) -> UITableViewCell? {
+        let ds = tableView.dataSource
+        let indexPath = IndexPath(row: row, section: feedImageSection)
+        return ds?.tableView(tableView, cellForRowAt: indexPath)
+    }
+    
     func simulatePullDownRefresh() {
         onLoad?()
+    }
+}
+
+private extension FeedImageCell {
+    var isShowingLocation: Bool {
+        return !locationContainer.isHidden
+    }
+    
+    var locationText: String? {
+        return locationLabel.text
+    }
+    
+    
+    var descriptionText: String? {
+        return descriptionLabel.text
     }
 }
 

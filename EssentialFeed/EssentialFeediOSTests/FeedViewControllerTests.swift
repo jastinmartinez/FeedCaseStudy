@@ -41,7 +41,7 @@ final class FeedViewControllerTests: XCTestCase {
         sut.simulatePullDownRefresh()
         XCTAssertEqual(sut.isShowingLoadingIndicator, true)
         
-        loader.completeFeedLoader(at: 1)
+        loader.completeFeedLoader(errorAt: 1)
         XCTAssertEqual(sut.isShowingLoadingIndicator, false)
     }
     
@@ -54,20 +54,30 @@ final class FeedViewControllerTests: XCTestCase {
         let (sut, loader) = makeSUT()
         
         sut.loadViewIfNeeded()
-        XCTAssertEqual(sut.numberOfRenderedFeedImageView(), 0)
+        sut.replaceWithFakeRefreshControl()
+        try assert(sut, isRendering: [])
         
         loader.completeFeedLoader(with: [image0])
-        XCTAssertEqual(sut.numberOfRenderedFeedImageView(), 1)
+        try assert(sut, isRendering: [image0])
         
         sut.simulatePullDownRefresh()
+        loader.completeFeedLoader(with: [image0, image1, image2, image3])
+        try assert(sut, isRendering:[image0, image1, image2, image3])
+    }
+    
+    func test_loadFeedCompletion_doesNotAlterCurrentRenderingStateOnError() throws {
+        let image0 = makeImage(description: "a description", location: "a location")
         
-        let feedImages: [FeedImage] = [image0, image1, image2, image3]
-        loader.completeFeedLoader(with: feedImages)
-        XCTAssertEqual(sut.numberOfRenderedFeedImageView(), 4)
-        continueAfterFailure = false
-        try feedImages.enumerated().forEach { (index, feed) in
-            try assert(sut, hasViewConfigureFor: feed, at: index)
-        }
+        let (sut, loader) = makeSUT()
+        
+        sut.loadViewIfNeeded()
+        
+        loader.completeFeedLoader(with: [image0])
+        try assert(sut, isRendering: [image0])
+        
+        sut.simulatePullDownRefresh()
+        loader.completeFeedLoader(errorAt: 0)
+        try assert(sut, isRendering: [image0])
     }
     
     
@@ -80,6 +90,19 @@ final class FeedViewControllerTests: XCTestCase {
         trackForMemoryLeaks(instance: sut, file: file, line: line)
         trackForMemoryLeaks(instance: loader, file: file, line: line)
         return (sut, loader)
+    }
+    
+    private func assert(_ sut: FeedViewController, isRendering feed: [FeedImage], file: StaticString = #filePath,
+                        line: UInt = #line) throws {
+        guard sut.numberOfRenderedFeedImageView() == feed.count else {
+            XCTFail("Expected \(feed.count) images, got \(sut.numberOfRenderedFeedImageView()) instead.", file: file, line: line)
+            return
+        }
+        
+        continueAfterFailure = false
+        try feed.enumerated().forEach { (index, feed) in
+            try assert(sut, hasViewConfigureFor: feed, at: index, file: file, line: line)
+        }
     }
     
     private func assert(_ sut: FeedViewController,
@@ -116,6 +139,10 @@ final class FeedViewControllerTests: XCTestCase {
         
         func completeFeedLoader(with feed: [FeedImage] = [],at index: Int = 0) {
             messages[index](.success(feed))
+        }
+        
+        func completeFeedLoader(errorAt index: Int = 0) {
+            messages[index](.failure(NSError(domain: "any error", code: 0)))
         }
     }
 }
